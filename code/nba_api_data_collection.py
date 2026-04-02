@@ -66,7 +66,7 @@ else:
         df["TEAM_NAME"] = df["TEAM_NAME"].astype(str).str.strip()
 
         df["TEAM_NAME"] = df["TEAM_NAME"].replace({
-            "Los Angles Clippers": "LA Clippers",
+            "Los Angeles Clippers": "LA Clippers",
             "L.A. Clippers": "LA Clippers",
         })
 
