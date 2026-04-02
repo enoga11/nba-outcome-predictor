@@ -9,8 +9,10 @@ seasons = ["2022-23", "2023-24", "2024-25"]
 CACHE_DIR = "../data/raw/nba_api_cache"
 OUTPUT_FILE = "../data/raw/nba_team_games_combined.csv"
 os.makedirs(CACHE_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
-
+output_dir = os.path.dirname(OUTPUT_FILE)
+if output_dir:
+    os.makedirs(output_dir, exist_ok=True)
+    
 def get_season_games(season):
     """
     Downloads one season of team game data
