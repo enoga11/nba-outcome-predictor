@@ -65,3 +65,18 @@ df.to_csv("../data/raw/nba_team_games_combined.csv", index=False)
 print(df.head())
 print(df.columns.tolist())
 
+# get rid of some teams that are not relevant to our analysis (like "NBA Development League")
+relevant_teams = [
+    "Atlanta Hawks", "Boston Celtics", "Brooklyn Nets", "Charlotte Hornets",
+    "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks", "Denver Nuggets",
+    "Detroit Pistons", "Golden State Warriors", "Houston Rockets", "Indiana Pacers",
+    "LA Clippers", "Los Angeles Lakers", "Memphis Grizzlies", "Miami Heat",
+    "Milwaukee Bucks", "Minnesota Timberwolves", "New Orleans Pelicans", "New York Knicks",
+    "Oklahoma City Thunder", "Orlando Magic", "Philadelphia 76ers", "Phoenix Suns", "Portland Trail Blazers", "Sacramento Kings",  
+    "San Antonio Spurs", "Toronto Raptors", "Utah Jazz", "Washington Wizards"
+]   
+df = df[df["TEAM_NAME"].isin(relevant_teams)].reset_index(drop=True)
+
+# print all the team names in the dataset
+print("Teams in dataset:")
+print(df["TEAM_NAME"].unique())
