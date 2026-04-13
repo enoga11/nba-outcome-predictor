@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -17,6 +18,9 @@ NBA_TEAMS = [
 ]
 
 
+DATA_FILE = "../data/processed/games_with_features.csv"
+
+
 class NBAPredictorApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -24,17 +28,29 @@ class NBAPredictorApp(tk.Tk):
         self.title("NBA Game Predictor")
         self.geometry("600x400")
 
-        # Load processed dataset
-        self.df = pd.read_csv("../data/processed/games_with_features.csv")
+        if not os.path.exists(DATA_FILE):
+            messagebox.showerror(
+                "Missing Data",
+                f"Could not find {DATA_FILE}.\nRun nba_api_data_collection.py first."
+            )
+            self.destroy()
+            return
 
-        # Train model once when app starts
+        self.df = pd.read_csv(DATA_FILE)
         self.model = self.train_model()
-
-        # Build interface
         self.create_widgets()
 
     def train_model(self):
-        X = self.df[["home_win_pct", "away_win_pct", "win_pct_diff"]]
+        X = self.df[
+            [
+                "home_last10_win_pct",
+                "away_last10_win_pct",
+                "last10_win_pct_diff",
+                "home_last10_home_win_pct",
+                "away_last10_away_win_pct",
+                "home_away_form_diff"
+            ]
+        ]
         y = self.df["HOME_TEAM_WINS"]
 
         split_index = int(len(self.df) * 0.8)
@@ -65,7 +81,6 @@ class NBAPredictorApp(tk.Tk):
         )
         title_label.pack(pady=20)
 
-        # Home team
         home_frame = tk.Frame(self)
         home_frame.pack(pady=10)
 
@@ -82,7 +97,6 @@ class NBAPredictorApp(tk.Tk):
         )
         self.home_team_dropdown.pack(side="left")
 
-        # Away team
         away_frame = tk.Frame(self)
         away_frame.pack(pady=10)
 
@@ -99,7 +113,6 @@ class NBAPredictorApp(tk.Tk):
         )
         self.away_team_dropdown.pack(side="left")
 
-        # Predict button
         predict_button = tk.Button(
             self,
             text="Predict Winner",
@@ -108,7 +121,6 @@ class NBAPredictorApp(tk.Tk):
         )
         predict_button.pack(pady=20)
 
-        # Result label
         self.result_label = tk.Label(
             self,
             text="Select two teams to predict the game result.",
@@ -130,7 +142,6 @@ class NBAPredictorApp(tk.Tk):
             messagebox.showerror("Input Error", "Home team and away team cannot be the same.")
             return
 
-        # Get rows for chosen teams
         home_rows = self.df[self.df["HOME_TEAM_NAME"] == home_team]
         away_rows = self.df[self.df["AWAY_TEAM_NAME"] == away_team]
 
@@ -142,15 +153,21 @@ class NBAPredictorApp(tk.Tk):
             messagebox.showerror("Data Error", f"No away-team data found for {away_team}.")
             return
 
-        # Use average feature values for selected teams
-        home_win_pct = home_rows["home_win_pct"].mean()
-        away_win_pct = away_rows["away_win_pct"].mean()
-        win_pct_diff = home_win_pct - away_win_pct
+        home_last10_win_pct = home_rows["home_last10_win_pct"].mean()
+        away_last10_win_pct = away_rows["away_last10_win_pct"].mean()
+        last10_win_pct_diff = home_last10_win_pct - away_last10_win_pct
+
+        home_last10_home_win_pct = home_rows["home_last10_home_win_pct"].mean()
+        away_last10_away_win_pct = away_rows["away_last10_away_win_pct"].mean()
+        home_away_form_diff = home_last10_home_win_pct - away_last10_away_win_pct
 
         input_df = pd.DataFrame({
-            "home_win_pct": [home_win_pct],
-            "away_win_pct": [away_win_pct],
-            "win_pct_diff": [win_pct_diff]
+            "home_last10_win_pct": [home_last10_win_pct],
+            "away_last10_win_pct": [away_last10_win_pct],
+            "last10_win_pct_diff": [last10_win_pct_diff],
+            "home_last10_home_win_pct": [home_last10_home_win_pct],
+            "away_last10_away_win_pct": [away_last10_away_win_pct],
+            "home_away_form_diff": [home_away_form_diff]
         })
 
         prediction = self.model.predict(input_df)[0]
