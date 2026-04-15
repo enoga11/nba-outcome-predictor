@@ -27,6 +27,7 @@ def clean_team_name(name):
     name = str(name).strip()
     replacements = {
         "Los Angeles Clippers": "Los Angeles Clippers",
+        "LA Clippers": "Los Angeles Clippers",
         "L.A. Clippers": "Los Angeles Clippers"
     }
     return replacements.get(name, name)
