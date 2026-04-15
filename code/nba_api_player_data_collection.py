@@ -102,7 +102,6 @@ def build_star_availability():
 
         if idx % 200 == 0:
             print(f"Processed {idx} games...")
-            break
 
     return pd.DataFrame(results)
 
