@@ -23,7 +23,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 4rem;
         }
 
         h1 {
@@ -70,22 +70,47 @@
             margin-bottom: 0.5rem;
         }
 
+        .select-wrap {
+            position: relative;
+        }
+
+        .select-wrap::after {
+            content: '';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #f0a500;
+            pointer-events: none;
+        }
+
         select {
             width: 100%;
-            padding: 0.75rem 1rem;
-            background: #0a0a0f;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            background: #0d0d14;
             border: 1px solid #2a2a3a;
-            border-radius: 8px;
+            border-radius: 10px;
             color: #f0f0f0;
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             cursor: pointer;
             appearance: none;
+            transition: border-color 0.2s, background 0.2s;
+            outline: none;
+        }
+
+        select:hover {
+            border-color: #f0a500;
+            background: #111120;
         }
 
         select:focus {
-            outline: none;
             border-color: #f0a500;
+            box-shadow: 0 0 0 3px rgba(240, 165, 0, 0.15);
         }
 
         .vs {
@@ -176,22 +201,26 @@
 
 <body>
     <h1>NBA Predictor</h1>
-    <p class="subtitle">Logistic Regression · Last 10 Form · Rest · Net Rating</p>
+    <p class="subtitle">AI-Powered Predictions</p>
 
     <div class="card">
         <div class="team-row">
             <div class="team-block">
                 <label>Home Team</label>
-                <select id="homeTeam">
-                    <option value="">Select team…</option>
-                </select>
+                <div class="select-wrap">
+                    <select id="homeTeam">
+                        <option value="">Select team…</option>
+                    </select>
+                </div>
             </div>
             <div class="vs">VS</div>
             <div class="team-block">
                 <label>Away Team</label>
-                <select id="awayTeam">
-                    <option value="">Select team…</option>
-                </select>
+                <div class="select-wrap">
+                    <select id="awayTeam">
+                        <option value="">Select team…</option>
+                    </select>
+                </div>
             </div>
         </div>
 
