@@ -3,152 +3,105 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NBA Game Predictor</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap"
-        rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NBA Predictor</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            background: #0a0a0f;
-            color: #f0f0f0;
-            font-family: 'Inter', sans-serif;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            padding: 4rem;
+            justify-content: center;
+            padding: 2rem;
+            box-sizing: border-box;
         }
 
         h1 {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 3.5rem;
-            letter-spacing: 0.1em;
-            color: #f0a500;
+            margin-bottom: 0.25rem;
+            font-size: 2.5rem;
         }
 
         .subtitle {
-            color: #888;
-            margin-bottom: 2.5rem;
-            font-size: 0.9rem;
-            letter-spacing: 0.05em;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: #cbd5e1;
         }
 
         .card {
-            background: #13131a;
-            border: 1px solid #2a2a3a;
-            border-radius: 16px;
-            padding: 2.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 2rem;
             width: 100%;
-            max-width: 520px;
+            max-width: 760px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
         }
 
         .team-row {
             display: flex;
             gap: 1rem;
-            margin-bottom: 1.5rem;
-            align-items: flex-end;
+            align-items: end;
+            flex-wrap: wrap;
         }
 
         .team-block {
             flex: 1;
+            min-width: 220px;
         }
 
         label {
             display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #f0a500;
             margin-bottom: 0.5rem;
+            color: #e2e8f0;
+            font-weight: bold;
         }
 
         .select-wrap {
             position: relative;
         }
 
-        .select-wrap::after {
-            content: '';
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid #f0a500;
-            pointer-events: none;
-        }
-
         select {
             width: 100%;
-            padding: 0.75rem 2.5rem 0.75rem 1rem;
-            background: #0d0d14;
-            border: 1px solid #2a2a3a;
-            border-radius: 10px;
-            color: #f0f0f0;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.875rem;
-            cursor: pointer;
+            padding: 0.9rem 1rem;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            background: white;
+            color: #111827;
             appearance: none;
-            transition: border-color 0.2s, background 0.2s;
-            outline: none;
-        }
-
-        select:hover {
-            border-color: #f0a500;
-            background: #111120;
-        }
-
-        select:focus {
-            border-color: #f0a500;
-            box-shadow: 0 0 0 3px rgba(240, 165, 0, 0.15);
         }
 
         .vs {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.4rem;
-            color: #444;
-            padding-bottom: 0.6rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fbbf24;
+            padding-bottom: 0.7rem;
         }
 
         button {
+            margin-top: 1.5rem;
             width: 100%;
-            padding: 0.9rem;
-            background: #f0a500;
-            color: #0a0a0f;
+            padding: 1rem;
             border: none;
-            border-radius: 8px;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.3rem;
-            letter-spacing: 0.1em;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        button:hover {
-            opacity: 0.85;
+            background: #f59e0b;
+            color: #111827;
         }
 
         button:disabled {
-            opacity: 0.4;
+            opacity: 0.7;
             cursor: not-allowed;
         }
 
         .result {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: #0a0a0f;
-            border-radius: 10px;
-            border: 1px solid #2a2a3a;
+            margin-top: 1.5rem;
             display: none;
         }
 
@@ -157,37 +110,37 @@
         }
 
         .winner {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2rem;
-            color: #f0a500;
+            font-size: 1.5rem;
+            font-weight: bold;
             margin-bottom: 1rem;
+            color: #fbbf24;
         }
 
         .prob-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.85rem;
-            color: #bbb;
-            margin-bottom: 0.4rem;
+            margin: 0.4rem 0;
+            color: #e2e8f0;
         }
 
         .bar-track {
-            background: #2a2a3a;
-            border-radius: 4px;
-            height: 6px;
-            margin-bottom: 1rem;
+            width: 100%;
+            height: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
             overflow: hidden;
+            margin-bottom: 1rem;
         }
 
         .bar-fill {
             height: 100%;
-            background: #f0a500;
-            border-radius: 4px;
-            transition: width 0.6s ease;
+            background: #22c55e;
+            width: 0%;
+            transition: width 0.4s ease;
         }
 
         .error {
-            color: #ff6b6b;
+            color: #fecaca;
             margin-top: 1rem;
             font-size: 0.85rem;
             display: none;
@@ -202,6 +155,7 @@
 <body>
     <h1>NBA Predictor</h1>
     <p class="subtitle">AI-Powered Predictions</p>
+    <p class="subtitle" id="dataStatus">Loading data source…</p>
 
     <div class="card">
         <div class="team-row">
@@ -256,6 +210,19 @@
             TEAMS.forEach(t => { const o = document.createElement("option"); o.value = o.text = t; sel.add(o); });
         });
 
+        async function loadStatus() {
+            const statusEl = document.getElementById("dataStatus");
+            try {
+                const resp = await fetch("/api/status");
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                const latest = data.latest_game_date ? ` • latest game: ${data.latest_game_date}` : "";
+                statusEl.textContent = `Data source: ${data.data_source}${latest}`;
+            } catch {
+                statusEl.textContent = "Data source unavailable";
+            }
+        }
+
         async function predict() {
             const homeTeam = document.getElementById("homeTeam").value;
             const awayTeam = document.getElementById("awayTeam").value;
@@ -290,6 +257,7 @@
                 btn.disabled = false; btn.textContent = "Predict Winner";
             }
         }
+        loadStatus();
     </script>
 </body>
 

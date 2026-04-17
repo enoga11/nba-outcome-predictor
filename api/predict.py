@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import random
 from datetime import datetime
 
 import pandas as pd
@@ -10,27 +10,7 @@ from pydantic import BaseModel
 from sklearn.linear_model import LogisticRegression
 
 sys.path.insert(0, os.path.dirname(__file__))
-from feature_engineering import (
-    add_efg_features,
-    add_last10_features,
-    add_matchup_features,
-    add_net_rating_and_turnover_features,
-    add_rest_features,
-    add_scoring_features,
-    build_game_level_dataset,
-    clean_team_name,
-)
-
-try:
-    from nba_api.stats.endpoints import leaguegamefinder
-    from nba_api.library.http import NBAStatsHTTP
-    NBAStatsHTTP.HEADERS["User-Agent"] = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-except ImportError:
-    leaguegamefinder = None
+from feature_engineering import clean_team_name
 
 app = FastAPI()
 app.add_middleware(
@@ -74,78 +54,15 @@ MATCHUP_FEATURE_ALIASES = ["offensive_defensive_matchup_diff", "off_def_matchup_
 OPTIONAL_FEATURE_COLUMNS = ["home_last10_efg", "away_last10_efg"]
 OPTIONAL_EFG_DIFF_ALIASES = ["effective_fg_pct_diff", "efg_diff"]
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "games_with_features.csv")
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATA_FILE = os.path.join(ROOT_DIR, "data", "processed", "games_with_features.csv")
+LIVE_DATA_FILE = os.path.join(ROOT_DIR, "data", "live", "live_games_with_features.csv")
+LIVE_METADATA_FILE = os.path.join(ROOT_DIR, "data", "live", "metadata.json")
 
-# Load proxies from environment variable (set in Vercel dashboard)
-# Format: "http://user:pass@ip1:port,http://user:pass@ip2:port,..."
-_proxy_list = [p.strip() for p in os.environ.get("NBA_PROXIES", "").split(",") if p.strip()]
-
-# --- Module-level state ---
 _base_df = None
 _live_df = None
 _model = None
 _feature_columns = None
-
-
-def get_default_live_season():
-    today = datetime.now()
-    start_year = today.year if today.month >= 10 else today.year - 1
-    end_year = str((start_year + 1) % 100).zfill(2)
-    return f"{start_year}-{end_year}"
-
-
-def prepare_live_team_games(raw_df):
-    df = raw_df.copy()
-    df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"], errors="coerce")
-    df["TEAM_NAME"] = df["TEAM_NAME"].apply(clean_team_name)
-    df["MATCHUP"] = df["MATCHUP"].astype(str).str.strip()
-    df["WL"] = df["WL"].astype(str).str.strip()
-    numeric_candidates = [
-        "PTS", "FGM", "FGA", "FG3M", "FG3A", "FTM", "FTA",
-        "OREB", "DREB", "REB", "AST", "STL", "BLK", "TOV", "PF", "PLUS_MINUS"
-    ]
-    for col in numeric_candidates:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    df = df[df["TEAM_NAME"].isin(set(NBA_TEAMS))].copy()
-    df = df.dropna(subset=["GAME_ID", "GAME_DATE", "TEAM_ID", "TEAM_NAME", "MATCHUP", "WL", "PTS", "SEASON"])
-    return df.sort_values(["GAME_DATE", "GAME_ID", "TEAM_NAME"]).reset_index(drop=True)
-
-
-def build_live_feature_dataset():
-    if leaguegamefinder is None:
-        raise RuntimeError("nba_api is not installed.")
-
-    season = get_default_live_season()
-
-    # Route through a random proxy to bypass NBA.com's cloud IP ban
-    if _proxy_list:
-        proxy = random.choice(_proxy_list)
-        os.environ["HTTP_PROXY"] = proxy
-        os.environ["HTTPS_PROXY"] = proxy
-        print(f"Using proxy: {proxy.split('@')[-1]}")  # log IP only, not credentials
-    else:
-        print("No proxies configured — attempting direct connection.")
-
-    raw_df = leaguegamefinder.LeagueGameFinder(
-        player_or_team_abbreviation="T",
-        season_nullable=season
-    ).get_data_frames()[0]
-
-    if raw_df.empty:
-        raise RuntimeError(f"NBA API returned no games for season {season}.")
-    if "SEASON" not in raw_df.columns:
-        raw_df["SEASON"] = season
-
-    team_games_df = prepare_live_team_games(raw_df)
-    games_df = build_game_level_dataset(team_games_df)
-    games_df = add_last10_features(games_df)
-    games_df = add_rest_features(games_df)
-    games_df = add_scoring_features(games_df)
-    games_df = add_matchup_features(games_df)
-    games_df = add_efg_features(games_df)
-    games_df = add_net_rating_and_turnover_features(games_df)
-    return games_df
 
 
 def get_feature_columns(df):
@@ -164,23 +81,43 @@ def get_feature_columns(df):
     return cols
 
 
+def load_dataset(csv_path):
+    df = pd.read_csv(csv_path)
+    df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"], errors="coerce")
+    for team_col in ["HOME_TEAM_NAME", "AWAY_TEAM_NAME"]:
+        if team_col in df.columns:
+            df[team_col] = df[team_col].apply(clean_team_name)
+    return df
+
+
+def get_live_metadata():
+    if os.path.exists(LIVE_METADATA_FILE):
+        try:
+            with open(LIVE_METADATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+
 def get_prediction_dataset():
-    """Lazy live fetch on first request, cached after success. Falls back to CSV on failure."""
     global _live_df
     if _live_df is not None:
-        return _live_df
-    try:
-        _live_df = build_live_feature_dataset()
-        print("Live NBA data loaded and cached.")
-        return _live_df
-    except Exception as e:
-        print(f"Live data fetch failed, using CSV fallback: {e}")
-        return _base_df
+        return _live_df, "cached live snapshot"
+
+    if os.path.exists(LIVE_DATA_FILE):
+        _live_df = load_dataset(LIVE_DATA_FILE)
+        metadata = get_live_metadata() or {}
+        source = metadata.get("source", "local live snapshot")
+        exported_at = metadata.get("exported_at")
+        if exported_at:
+            source = f"{source} ({exported_at})"
+        return _live_df, source
+
+    return _base_df, "historical CSV fallback"
 
 
-# Load CSV and train model at startup (fast — no API call yet)
-_base_df = pd.read_csv(DATA_FILE)
-_base_df["GAME_DATE"] = pd.to_datetime(_base_df["GAME_DATE"], errors="coerce")
+_base_df = load_dataset(DATA_FILE)
 _feature_columns = get_feature_columns(_base_df)
 X = _base_df[_feature_columns]
 y = _base_df["HOME_TEAM_WINS"]
@@ -189,8 +126,6 @@ _model = LogisticRegression(class_weight="balanced", max_iter=2000)
 _model.fit(X.iloc[:split], y.iloc[:split])
 print("Model trained on CSV data at startup.")
 
-
-# --- Helper functions ---
 
 def get_latest_team_row(source_df, team_name):
     home_rows = source_df[source_df["HOME_TEAM_NAME"] == team_name].copy()
@@ -232,11 +167,27 @@ def get_team_snapshot(row, team_name):
     return snap
 
 
-# --- API endpoint ---
-
 class PredictRequest(BaseModel):
     home_team: str
     away_team: str
+
+
+@app.get("/api/status")
+def status():
+    source_df, data_source = get_prediction_dataset()
+    latest_game_date = None
+    if "GAME_DATE" in source_df.columns and not source_df.empty:
+        latest_game_date = source_df["GAME_DATE"].max()
+        if pd.notna(latest_game_date):
+            latest_game_date = latest_game_date.strftime("%Y-%m-%d")
+        else:
+            latest_game_date = None
+    return {
+        "data_source": data_source,
+        "using_live_snapshot": os.path.exists(LIVE_DATA_FILE),
+        "latest_game_date": latest_game_date,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+    }
 
 
 @app.post("/api/predict")
@@ -246,8 +197,10 @@ def predict(req: PredictRequest):
 
     if home_team == away_team:
         raise HTTPException(status_code=400, detail="Home and away teams must be different.")
+    if home_team not in NBA_TEAMS or away_team not in NBA_TEAMS:
+        raise HTTPException(status_code=400, detail="One or both team names are invalid.")
 
-    source_df = get_prediction_dataset()
+    source_df, data_source = get_prediction_dataset()
 
     try:
         h = get_team_snapshot(get_latest_team_row(source_df, home_team), home_team)
@@ -298,6 +251,7 @@ def predict(req: PredictRequest):
             "away_team": away_team,
             "home_win_prob": round(float(probs[1]), 4),
             "away_win_prob": round(float(probs[0]), 4),
+            "data_source": data_source,
         }
 
     except ValueError as e:

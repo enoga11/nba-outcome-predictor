@@ -2,4 +2,4 @@ fastapi
 uvicorn
 pandas
 scikit-learn
-nba_api
+nba-api
