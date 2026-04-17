@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NBA Game Predictor</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card hero">
+      <p class="eyebrow">Eric Noga · NBA Analytics Project</p>
+      <h1>NBA Game Predictor</h1>
+      <p class="subtitle">
+        Choose a home team and an away team to generate a model-based win prediction from your engineered features.
+      </p>
+    </section>
+
+    <section class="card form-card">
+      <div class="grid">
+        <label>
+          <span>Home Team</span>
+          <select id="homeTeam"></select>
+        </label>
+
+        <label>
+          <span>Away Team</span>
+          <select id="awayTeam"></select>
+        </label>
+      </div>
+
+      <button id="predictBtn">Predict Winner</button>
+      <p id="status" class="status">Loading teams...</p>
+    </section>
+
+    <section id="resultCard" class="card result-card hidden">
+      <h2>Prediction Result</h2>
+      <div class="winner-row">
+        <span class="winner-label">Predicted Winner</span>
+        <span id="winnerText" class="winner-text"></span>
+      </div>
+
+      <div class="probability-grid">
+        <div class="prob-box">
+          <span id="homeLabel"></span>
+          <strong id="homeProb"></strong>
+        </div>
+        <div class="prob-box">
+          <span id="awayLabel"></span>
+          <strong id="awayProb"></strong>
+        </div>
+      </div>
+
+      <p id="dataSource" class="data-source"></p>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

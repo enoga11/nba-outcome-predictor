@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/api/app" },
+    { "source": "/(style.css|app.js)", "destination": "/public/$1" }
+  ]
+}
