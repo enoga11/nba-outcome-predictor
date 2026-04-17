@@ -269,10 +269,10 @@
                 const resp = await fetch("/api/status");
                 if (!resp.ok) throw new Error();
                 const data = await resp.json();
-                const latest = data.latest_game_date ? ` • latest game: ${data.latest_game_date}` : "";
-                statusEl.textContent = `Data source: ${data.data_source}${latest}`;
+                const latest = data.latest_game_date ? `Latest game data: ${data.latest_game_date}` : "";
+                statusEl.textContent = latest || "";
             } catch {
-                statusEl.textContent = "Data source unavailable";
+                statusEl.textContent = "";
             }
         }
 
