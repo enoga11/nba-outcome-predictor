@@ -22,6 +22,13 @@ from feature_engineering import (
 
 try:
     from nba_api.stats.endpoints import leaguegamefinder
+    from nba_api.library.http import NBAStatsHTTP
+    # Spoof a browser User-Agent so the NBA API doesn't block server-side requests
+    NBAStatsHTTP.HEADERS["User-Agent"] = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
 except ImportError:
     leaguegamefinder = None
 
@@ -69,9 +76,9 @@ OPTIONAL_EFG_DIFF_ALIASES = ["effective_fg_pct_diff", "efg_diff"]
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "games_with_features.csv")
 
-# --- Module-level state (mirrors self.df / self.live_feature_df / self.model in home.py) ---
-_base_df = None      # loaded from CSV at startup — used to train the model
-_live_df = None      # cached after first successful live API fetch
+# --- Module-level state ---
+_base_df = None
+_live_df = None
 _model = None
 _feature_columns = None
 
@@ -141,7 +148,7 @@ def get_feature_columns(df):
 
 
 def get_prediction_dataset():
-    """Mirrors home.py get_prediction_dataset — lazy live fetch, cached after first success."""
+    """Lazy live fetch, cached after first success. Falls back to CSV if it fails."""
     global _live_df
     if _live_df is not None:
         return _live_df
@@ -223,7 +230,6 @@ def predict(req: PredictRequest):
     if home_team == away_team:
         raise HTTPException(status_code=400, detail="Home and away teams must be different.")
 
-    # Lazy-fetch live data on first prediction request, exactly like home.py
     source_df = get_prediction_dataset()
 
     try:
