@@ -3,105 +3,153 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NBA Predictor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NBA Game Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet" />
     <style>
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            color: white;
+            padding: 0;
+        }
+
+        body {
+            background: #0a0a0f;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             padding: 2rem;
-            box-sizing: border-box;
+            padding: 4rem;
         }
 
         h1 {
-            margin-bottom: 0.25rem;
-            font-size: 2.5rem;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.5rem;
+            letter-spacing: 0.1em;
+            color: #f0a500;
         }
 
         .subtitle {
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            color: #cbd5e1;
+            color: #888;
+            margin-bottom: 2.5rem;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 18px;
-            padding: 2rem;
+            background: #13131a;
+            border: 1px solid #2a2a3a;
+            border-radius: 16px;
+            padding: 2.5rem;
             width: 100%;
-            max-width: 760px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-            backdrop-filter: blur(10px);
+            max-width: 520px;
         }
 
         .team-row {
             display: flex;
             gap: 1rem;
-            align-items: end;
-            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            align-items: flex-end;
         }
 
         .team-block {
             flex: 1;
-            min-width: 220px;
         }
 
         label {
             display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #f0a500;
             margin-bottom: 0.5rem;
-            color: #e2e8f0;
-            font-weight: bold;
         }
 
         .select-wrap {
             position: relative;
         }
 
+        .select-wrap::after {
+            content: '';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #f0a500;
+            pointer-events: none;
+        }
+
         select {
             width: 100%;
-            padding: 0.9rem 1rem;
-            border-radius: 12px;
-            border: none;
-            font-size: 1rem;
-            background: white;
-            color: #111827;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            background: #0d0d14;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            cursor: pointer;
             appearance: none;
+            transition: border-color 0.2s, background 0.2s;
+            outline: none;
+        }
+
+        select:hover {
+            border-color: #f0a500;
+            background: #111120;
+        }
+
+        select:focus {
+            border-color: #f0a500;
+            box-shadow: 0 0 0 3px rgba(240, 165, 0, 0.15);
         }
 
         .vs {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #fbbf24;
-            padding-bottom: 0.7rem;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.4rem;
+            color: #444;
+            padding-bottom: 0.6rem;
         }
 
         button {
-            margin-top: 1.5rem;
             width: 100%;
-            padding: 1rem;
+            padding: 0.9rem;
+            background: #f0a500;
+            color: #0a0a0f;
             border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: bold;
+            border-radius: 8px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            letter-spacing: 0.1em;
             cursor: pointer;
-            background: #f59e0b;
-            color: #111827;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.85;
         }
 
         button:disabled {
-            opacity: 0.7;
+            opacity: 0.4;
             cursor: not-allowed;
         }
 
         .result {
-            margin-top: 1.5rem;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #0a0a0f;
+            border-radius: 10px;
+            border: 1px solid #2a2a3a;
             display: none;
         }
 
@@ -110,37 +158,37 @@
         }
 
         .winner {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: #f0a500;
             margin-bottom: 1rem;
-            color: #fbbf24;
         }
 
         .prob-row {
             display: flex;
             justify-content: space-between;
-            margin: 0.4rem 0;
-            color: #e2e8f0;
+            font-size: 0.85rem;
+            color: #bbb;
+            margin-bottom: 0.4rem;
         }
 
         .bar-track {
-            width: 100%;
-            height: 14px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 999px;
-            overflow: hidden;
+            background: #2a2a3a;
+            border-radius: 4px;
+            height: 6px;
             margin-bottom: 1rem;
+            overflow: hidden;
         }
 
         .bar-fill {
             height: 100%;
-            background: #22c55e;
-            width: 0%;
-            transition: width 0.4s ease;
+            background: #f0a500;
+            border-radius: 4px;
+            transition: width 0.6s ease;
         }
 
         .error {
-            color: #fecaca;
+            color: #ff6b6b;
             margin-top: 1rem;
             font-size: 0.85rem;
             display: none;
@@ -205,9 +253,14 @@
             "Portland Trail Blazers", "Sacramento Kings", "San Antonio Spurs", "Toronto Raptors",
             "Utah Jazz", "Washington Wizards"
         ];
+
         ["homeTeam", "awayTeam"].forEach(id => {
             const sel = document.getElementById(id);
-            TEAMS.forEach(t => { const o = document.createElement("option"); o.value = o.text = t; sel.add(o); });
+            TEAMS.forEach(t => {
+                const o = document.createElement("option");
+                o.value = o.text = t;
+                sel.add(o);
+            });
         });
 
         async function loadStatus() {
@@ -230,17 +283,36 @@
             const err = document.getElementById("errorMsg");
             const res = document.getElementById("result");
 
-            err.className = "error"; res.className = "result";
-            if (!homeTeam || !awayTeam) { err.textContent = "Please select both teams."; err.className = "error show"; return; }
-            if (homeTeam === awayTeam) { err.textContent = "Home and away teams must be different."; err.className = "error show"; return; }
+            err.className = "error";
+            res.className = "result";
 
-            btn.disabled = true; btn.textContent = "Predicting…";
+            if (!homeTeam || !awayTeam) {
+                err.textContent = "Please select both teams.";
+                err.className = "error show";
+                return;
+            }
+
+            if (homeTeam === awayTeam) {
+                err.textContent = "Home and away teams must be different.";
+                err.className = "error show";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Predicting…";
+
             try {
                 const resp = await fetch("/api/predict", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ home_team: homeTeam, away_team: awayTeam })
                 });
-                if (!resp.ok) { const e = await resp.json(); throw new Error(e.detail || "Prediction failed"); }
+
+                if (!resp.ok) {
+                    const e = await resp.json();
+                    throw new Error(e.detail || "Prediction failed");
+                }
+
                 const data = await resp.json();
 
                 document.getElementById("winnerText").textContent = `🏆 ${data.winner}`;
@@ -250,13 +322,17 @@
                 document.getElementById("awayProb").textContent = `${(data.away_win_prob * 100).toFixed(1)}%`;
                 document.getElementById("homeBar").style.width = `${data.home_win_prob * 100}%`;
                 document.getElementById("awayBar").style.width = `${data.away_win_prob * 100}%`;
+
                 res.className = "result show";
             } catch (e) {
-                err.textContent = e.message; err.className = "error show";
+                err.textContent = e.message;
+                err.className = "error show";
             } finally {
-                btn.disabled = false; btn.textContent = "Predict Winner";
+                btn.disabled = false;
+                btn.textContent = "Predict Winner";
             }
         }
+
         loadStatus();
     </script>
 </body>
