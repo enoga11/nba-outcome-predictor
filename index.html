@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NBA Game Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0a0a0f;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.5rem;
+            letter-spacing: 0.1em;
+            color: #f0a500;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 2.5rem;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+
+        .card {
+            background: #13131a;
+            border: 1px solid #2a2a3a;
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .team-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .team-block {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #f0a500;
+            margin-bottom: 0.5rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #0a0a0f;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #f0a500;
+        }
+
+        .vs {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.4rem;
+            color: #444;
+            padding-bottom: 0.6rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.9rem;
+            background: #f0a500;
+            color: #0a0a0f;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #0a0a0f;
+            border-radius: 10px;
+            border: 1px solid #2a2a3a;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .winner {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: #f0a500;
+            margin-bottom: 1rem;
+        }
+
+        .prob-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #bbb;
+            margin-bottom: 0.4rem;
+        }
+
+        .bar-track {
+            background: #2a2a3a;
+            border-radius: 4px;
+            height: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #f0a500;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .error {
+            color: #ff6b6b;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>NBA Predictor</h1>
+    <p class="subtitle">Logistic Regression · Last 10 Form · Rest · Net Rating</p>
+
+    <div class="card">
+        <div class="team-row">
+            <div class="team-block">
+                <label>Home Team</label>
+                <select id="homeTeam">
+                    <option value="">Select team…</option>
+                </select>
+            </div>
+            <div class="vs">VS</div>
+            <div class="team-block">
+                <label>Away Team</label>
+                <select id="awayTeam">
+                    <option value="">Select team…</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="predictBtn" onclick="predict()">Predict Winner</button>
+        <p class="error" id="errorMsg"></p>
+
+        <div class="result" id="result">
+            <div class="winner" id="winnerText"></div>
+            <div class="prob-row"><span id="homeLabel"></span><span id="homeProb"></span></div>
+            <div class="bar-track">
+                <div class="bar-fill" id="homeBar"></div>
+            </div>
+            <div class="prob-row"><span id="awayLabel"></span><span id="awayProb"></span></div>
+            <div class="bar-track">
+                <div class="bar-fill" id="awayBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TEAMS = [
+            "Atlanta Hawks", "Boston Celtics", "Brooklyn Nets", "Charlotte Hornets",
+            "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks", "Denver Nuggets",
+            "Detroit Pistons", "Golden State Warriors", "Houston Rockets", "Indiana Pacers",
+            "Los Angeles Clippers", "Los Angeles Lakers", "Memphis Grizzlies", "Miami Heat",
+            "Milwaukee Bucks", "Minnesota Timberwolves", "New Orleans Pelicans", "New York Knicks",
+            "Oklahoma City Thunder", "Orlando Magic", "Philadelphia 76ers", "Phoenix Suns",
+            "Portland Trail Blazers", "Sacramento Kings", "San Antonio Spurs", "Toronto Raptors",
+            "Utah Jazz", "Washington Wizards"
+        ];
+        ["homeTeam", "awayTeam"].forEach(id => {
+            const sel = document.getElementById(id);
+            TEAMS.forEach(t => { const o = document.createElement("option"); o.value = o.text = t; sel.add(o); });
+        });
+
+        async function predict() {
+            const homeTeam = document.getElementById("homeTeam").value;
+            const awayTeam = document.getElementById("awayTeam").value;
+            const btn = document.getElementById("predictBtn");
+            const err = document.getElementById("errorMsg");
+            const res = document.getElementById("result");
+
+            err.className = "error"; res.className = "result";
+            if (!homeTeam || !awayTeam) { err.textContent = "Please select both teams."; err.className = "error show"; return; }
+            if (homeTeam === awayTeam) { err.textContent = "Home and away teams must be different."; err.className = "error show"; return; }
+
+            btn.disabled = true; btn.textContent = "Predicting…";
+            try {
+                const resp = await fetch("/api/predict", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ home_team: homeTeam, away_team: awayTeam })
+                });
+                if (!resp.ok) { const e = await resp.json(); throw new Error(e.detail || "Prediction failed"); }
+                const data = await resp.json();
+
+                document.getElementById("winnerText").textContent = `🏆 ${data.winner}`;
+                document.getElementById("homeLabel").textContent = homeTeam;
+                document.getElementById("awayLabel").textContent = awayTeam;
+                document.getElementById("homeProb").textContent = `${(data.home_win_prob * 100).toFixed(1)}%`;
+                document.getElementById("awayProb").textContent = `${(data.away_win_prob * 100).toFixed(1)}%`;
+                document.getElementById("homeBar").style.width = `${data.home_win_prob * 100}%`;
+                document.getElementById("awayBar").style.width = `${data.away_win_prob * 100}%`;
+                res.className = "result show";
+            } catch (e) {
+                err.textContent = e.message; err.className = "error show";
+            } finally {
+                btn.disabled = false; btn.textContent = "Predict Winner";
+            }
+        }
+    </script>
+</body>
+
+</html>
