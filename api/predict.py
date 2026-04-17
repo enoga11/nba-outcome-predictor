@@ -69,6 +69,12 @@ OPTIONAL_EFG_DIFF_ALIASES = ["effective_fg_pct_diff", "efg_diff"]
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "games_with_features.csv")
 
+# --- Module-level state (mirrors self.df / self.live_feature_df / self.model in home.py) ---
+_base_df = None      # loaded from CSV at startup — used to train the model
+_live_df = None      # cached after first successful live API fetch
+_model = None
+_feature_columns = None
+
 
 def get_default_live_season():
     today = datetime.now()
@@ -96,13 +102,15 @@ def prepare_live_team_games(raw_df):
 
 
 def build_live_feature_dataset():
+    if leaguegamefinder is None:
+        raise RuntimeError("nba_api is not installed.")
     season = get_default_live_season()
     raw_df = leaguegamefinder.LeagueGameFinder(
         player_or_team_abbreviation="T",
         season_nullable=season
     ).get_data_frames()[0]
     if raw_df.empty:
-        raise RuntimeError(f"NBA API returned no games for season {season}")
+        raise RuntimeError(f"NBA API returned no games for season {season}.")
     if "SEASON" not in raw_df.columns:
         raw_df["SEASON"] = season
     team_games_df = prepare_live_team_games(raw_df)
@@ -114,21 +122,6 @@ def build_live_feature_dataset():
     games_df = add_efg_features(games_df)
     games_df = add_net_rating_and_turnover_features(games_df)
     return games_df
-
-
-def load_dataframe():
-    if leaguegamefinder is not None:
-        try:
-            print("Fetching live NBA data from API...")
-            live_df = build_live_feature_dataset()
-            print("Live data loaded successfully.")
-            return live_df
-        except Exception as e:
-            print(f"Live data fetch failed, falling back to CSV: {e}")
-    print("Loading from local CSV...")
-    base_df = pd.read_csv(DATA_FILE)
-    base_df["GAME_DATE"] = pd.to_datetime(base_df["GAME_DATE"], errors="coerce")
-    return base_df
 
 
 def get_feature_columns(df):
@@ -147,19 +140,33 @@ def get_feature_columns(df):
     return cols
 
 
-# Load data and train model at startup
-df = load_dataframe()
-feature_columns = get_feature_columns(df)
+def get_prediction_dataset():
+    """Mirrors home.py get_prediction_dataset — lazy live fetch, cached after first success."""
+    global _live_df
+    if _live_df is not None:
+        return _live_df
+    try:
+        _live_df = build_live_feature_dataset()
+        print("Live NBA data loaded and cached.")
+        return _live_df
+    except Exception as e:
+        print(f"Live data fetch failed, using CSV fallback: {e}")
+        return _base_df
 
-X = df[feature_columns]
-y = df["HOME_TEAM_WINS"]
-split = int(len(df) * 0.8)
-model = LogisticRegression(class_weight="balanced", max_iter=2000)
-model.fit(X.iloc[:split], y.iloc[:split])
-print(f"Model trained on {split} games, evaluated on {len(df) - split} games.")
+
+# Load CSV and train model at startup (fast — no API call yet)
+_base_df = pd.read_csv(DATA_FILE)
+_base_df["GAME_DATE"] = pd.to_datetime(_base_df["GAME_DATE"], errors="coerce")
+_feature_columns = get_feature_columns(_base_df)
+X = _base_df[_feature_columns]
+y = _base_df["HOME_TEAM_WINS"]
+split = int(len(_base_df) * 0.8)
+_model = LogisticRegression(class_weight="balanced", max_iter=2000)
+_model.fit(X.iloc[:split], y.iloc[:split])
+print("Model trained on CSV data at startup.")
 
 
-# --- Helper functions (mirrors home.py) ---
+# --- Helper functions ---
 
 def get_latest_team_row(source_df, team_name):
     home_rows = source_df[source_df["HOME_TEAM_NAME"] == team_name].copy()
@@ -187,8 +194,7 @@ def get_latest_away_row(source_df, team_name):
 def get_team_snapshot(row, team_name):
     if row is None:
         raise ValueError(f"No data found for {team_name}.")
-    role = row["TEAM_ROLE"]
-    prefix = "home" if role == "home" else "away"
+    prefix = "home" if row["TEAM_ROLE"] == "home" else "away"
     snap = {
         "last10_win_pct": row[f"{prefix}_last10_win_pct"],
         "rest_days": row[f"{prefix}_rest_days"],
@@ -202,7 +208,7 @@ def get_team_snapshot(row, team_name):
     return snap
 
 
-# --- API ---
+# --- API endpoint ---
 
 class PredictRequest(BaseModel):
     home_team: str
@@ -217,11 +223,14 @@ def predict(req: PredictRequest):
     if home_team == away_team:
         raise HTTPException(status_code=400, detail="Home and away teams must be different.")
 
+    # Lazy-fetch live data on first prediction request, exactly like home.py
+    source_df = get_prediction_dataset()
+
     try:
-        h = get_team_snapshot(get_latest_team_row(df, home_team), home_team)
-        a = get_team_snapshot(get_latest_team_row(df, away_team), away_team)
-        hh = get_latest_home_row(df, home_team)
-        aa = get_latest_away_row(df, away_team)
+        h = get_team_snapshot(get_latest_team_row(source_df, home_team), home_team)
+        a = get_team_snapshot(get_latest_team_row(source_df, away_team), away_team)
+        hh = get_latest_home_row(source_df, home_team)
+        aa = get_latest_away_row(source_df, away_team)
 
         if hh is None:
             raise ValueError(f"No home-game data found for {home_team}.")
@@ -256,9 +265,9 @@ def predict(req: PredictRequest):
             feat["effective_fg_pct_diff"] = h["last10_efg"] - a["last10_efg"]
             feat["efg_diff"] = h["last10_efg"] - a["last10_efg"]
 
-        input_df = pd.DataFrame([feat])[feature_columns]
-        pred = model.predict(input_df)[0]
-        probs = model.predict_proba(input_df)[0]
+        input_df = pd.DataFrame([feat])[_feature_columns]
+        pred = _model.predict(input_df)[0]
+        probs = _model.predict_proba(input_df)[0]
 
         return {
             "winner": home_team if pred == 1 else away_team,
