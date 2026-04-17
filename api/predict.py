@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 from datetime import datetime
 
 import pandas as pd
@@ -23,7 +24,6 @@ from feature_engineering import (
 try:
     from nba_api.stats.endpoints import leaguegamefinder
     from nba_api.library.http import NBAStatsHTTP
-    # Spoof a browser User-Agent so the NBA API doesn't block server-side requests
     NBAStatsHTTP.HEADERS["User-Agent"] = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -76,6 +76,10 @@ OPTIONAL_EFG_DIFF_ALIASES = ["effective_fg_pct_diff", "efg_diff"]
 
 DATA_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "games_with_features.csv")
 
+# Load proxies from environment variable (set in Vercel dashboard)
+# Format: "http://user:pass@ip1:port,http://user:pass@ip2:port,..."
+_proxy_list = [p.strip() for p in os.environ.get("NBA_PROXIES", "").split(",") if p.strip()]
+
 # --- Module-level state ---
 _base_df = None
 _live_df = None
@@ -111,15 +115,28 @@ def prepare_live_team_games(raw_df):
 def build_live_feature_dataset():
     if leaguegamefinder is None:
         raise RuntimeError("nba_api is not installed.")
+
     season = get_default_live_season()
+
+    # Route through a random proxy to bypass NBA.com's cloud IP ban
+    if _proxy_list:
+        proxy = random.choice(_proxy_list)
+        os.environ["HTTP_PROXY"] = proxy
+        os.environ["HTTPS_PROXY"] = proxy
+        print(f"Using proxy: {proxy.split('@')[-1]}")  # log IP only, not credentials
+    else:
+        print("No proxies configured — attempting direct connection.")
+
     raw_df = leaguegamefinder.LeagueGameFinder(
         player_or_team_abbreviation="T",
         season_nullable=season
     ).get_data_frames()[0]
+
     if raw_df.empty:
         raise RuntimeError(f"NBA API returned no games for season {season}.")
     if "SEASON" not in raw_df.columns:
         raw_df["SEASON"] = season
+
     team_games_df = prepare_live_team_games(raw_df)
     games_df = build_game_level_dataset(team_games_df)
     games_df = add_last10_features(games_df)
@@ -148,7 +165,7 @@ def get_feature_columns(df):
 
 
 def get_prediction_dataset():
-    """Lazy live fetch, cached after first success. Falls back to CSV if it fails."""
+    """Lazy live fetch on first request, cached after success. Falls back to CSV on failure."""
     global _live_df
     if _live_df is not None:
         return _live_df
