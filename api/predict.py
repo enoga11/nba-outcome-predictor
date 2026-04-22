@@ -248,7 +248,10 @@ def predict(req: PredictRequest):
         home_prob = float(probs[1])
         away_prob = float(probs[0])
 
-        winner = home_team if home_prob >= away_prob else away_team
+        if abs(home_prob - away_prob) < 1e-12:
+            winner = home_team
+        else:
+            winner = home_team if home_prob > away_prob else away_team
 
         return {
             "winner": winner,
