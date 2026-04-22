@@ -245,8 +245,13 @@ def predict(req: PredictRequest):
         pred = _model.predict(input_df)[0]
         probs = _model.predict_proba(input_df)[0]
 
+        home_prob = float(probs[1])
+        away_prob = float(probs[0])
+
+        winner = home_team if home_prob >= away_prob else away_team
+
         return {
-            "winner": home_team if pred == 1 or round(float(probs[1]), 4) == round(float(probs[0]), 4) else away_team,
+            "winner": winner,
             "home_team": home_team,
             "away_team": away_team,
             "home_win_prob": round(float(probs[1]), 4),
