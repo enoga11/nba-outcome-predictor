@@ -249,8 +249,8 @@ def predict(req: PredictRequest):
         home_prob = float(probs[1])
         away_prob = float(probs[0])
 
-        home_prob_rounded = round(home_prob, 4)
-        away_prob_rounded = round(away_prob, 4)
+        home_prob_rounded = round(home_prob, 2)
+        away_prob_rounded = round(away_prob, 2)
 
         winner = home_team if home_prob_rounded >= away_prob_rounded else away_team
 
