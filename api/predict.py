@@ -242,16 +242,17 @@ def predict(req: PredictRequest):
             feat["efg_diff"] = h["last10_efg"] - a["last10_efg"]
 
         input_df = pd.DataFrame([feat])[_feature_columns]
+
         pred = _model.predict(input_df)[0]
         probs = _model.predict_proba(input_df)[0]
 
         home_prob = float(probs[1])
         away_prob = float(probs[0])
 
-        if abs(home_prob - away_prob) < 1e-12:
-            winner = home_team
-        else:
-            winner = home_team if home_prob > away_prob else away_team
+        home_prob_rounded = round(home_prob, 4)
+        away_prob_rounded = round(away_prob, 4)
+
+        winner = home_team if home_prob_rounded >= away_prob_rounded else away_team
 
         return {
             "winner": winner,
