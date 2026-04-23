@@ -318,8 +318,8 @@
                 document.getElementById("winnerText").textContent = `🏆 ${data.winner}`;
                 document.getElementById("homeLabel").textContent = homeTeam;
                 document.getElementById("awayLabel").textContent = awayTeam;
-                document.getElementById("homeProb").textContent = `${(data.home_win_prob * 100).toFixed(1)}%`;
-                document.getElementById("awayProb").textContent = `${(data.away_win_prob * 100).toFixed(1)}%`;
+                document.getElementById("homeProb").textContent = `${(data.home_win_prob * 100).toFixed(2)}%`;
+                document.getElementById("awayProb").textContent = `${(data.away_win_prob * 100).toFixed(2)}%`;
                 document.getElementById("homeBar").style.width = `${data.home_win_prob * 100}%`;
                 document.getElementById("awayBar").style.width = `${data.away_win_prob * 100}%`;
 
