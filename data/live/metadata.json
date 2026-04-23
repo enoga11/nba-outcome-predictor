@@ -1,8 +1,8 @@
 {
   "source": "local live snapshot",
   "season": "2025-26",
-  "row_count": 1305,
-  "latest_game_date": "2026-04-21",
-  "exported_at": "2026-04-22T02:59:27.173897Z",
+  "row_count": 1308,
+  "latest_game_date": "2026-04-22",
+  "exported_at": "2026-04-23T03:44:16.541747Z",
   "data_file": "data/live/live_games_with_features.csv"
 }
